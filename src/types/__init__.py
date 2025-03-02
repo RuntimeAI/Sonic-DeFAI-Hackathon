@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Type, Dict, Callable
 
 from pydantic import BaseModel
 from solders.pubkey import Pubkey  # type: ignore
@@ -87,3 +87,18 @@ class GibworkCreateTaskResponse:
     status: str
     taskId: Optional[str] = None
     signature: Optional[str] = None
+
+class ActionParameter:
+    """Parameter for an action"""
+    def __init__(self, name: str, required: bool, type_: Type, description: str):
+        self.name = name
+        self.required = required
+        self.type = type_
+        self.description = description
+
+class Action:
+    """Action that can be performed by a connection"""
+    def __init__(self, name: str, parameters: List[ActionParameter], description: str):
+        self.name = name
+        self.parameters = parameters
+        self.description = description

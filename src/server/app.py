@@ -8,6 +8,7 @@ import signal
 import threading
 from pathlib import Path
 from src.cli import ZerePyCLI
+from src.connections.pitchyouridea_connection import PitchYourIdeaConnection
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("server/app")
