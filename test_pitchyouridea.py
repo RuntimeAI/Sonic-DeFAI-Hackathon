@@ -35,6 +35,10 @@ def main():
                         help="ZerePy server URL (default: https://api.singha.today)")
     parser.add_argument("--pitch", type=str, 
                         help="Custom pitch to evaluate (default: uses example pitch)")
+    parser.add_argument("--post", action="store_true",
+                        help="Post the response to Farcaster")
+    parser.add_argument("--reply-to", type=str,
+                        help="Cast ID to reply to (requires --post)")
     args = parser.parse_args()
     
     # Initialize the client
@@ -218,6 +222,10 @@ The response should be conversational and direct, without hashtags or emojis.
             color = 32 if char_count <= 300 else 31
             print_colorized(f"\nCharacter count: {char_count}/300", color)
             
+            # After generating the response, check if we should post to Farcaster
+            if args.post:
+                post_to_farcaster(client, response_text, args.reply_to)
+            
         except json.JSONDecodeError:
             print_colorized("\nCould not parse evaluation as JSON. Raw result:", 31)
             print(evaluation_text)
@@ -226,6 +234,50 @@ The response should be conversational and direct, without hashtags or emojis.
         print_colorized(f"Error evaluating pitch: {e}", 31)
     
     print_colorized("\nTest completed!", 32)
+
+def post_to_farcaster(client, response_text, reply_to_cast_id=None):
+    """Post a response to Farcaster, optionally as a reply to a specific cast"""
+    print_section("POSTING TO FARCASTER")
+    
+    try:
+        # Check if Farcaster connection is available and configured
+        connections = client.list_connections()
+        if "farcaster" not in connections:
+            print_colorized("Farcaster connection not available", 31)
+            return False
+            
+        if not connections["farcaster"].get("configured", False):
+            print_colorized("Farcaster connection not configured", 31)
+            return False
+        
+        # Prepare action parameters
+        params = [response_text]
+        if reply_to_cast_id:
+            action = "reply-to-cast"
+            params.append(reply_to_cast_id)
+        else:
+            action = "post-cast"
+        
+        # Execute the action
+        print_colorized(f"Posting to Farcaster using '{action}'...", 36)
+        result = client.perform_action(
+            connection="farcaster",
+            action=action,
+            params=params
+        )
+        
+        if result.get("success", False):
+            print_colorized("Successfully posted to Farcaster!", 32)
+            cast_hash = result.get("cast_hash", "unknown")
+            print(f"Cast hash: {cast_hash}")
+            return cast_hash
+        else:
+            print_colorized(f"Failed to post to Farcaster: {result.get('error', 'Unknown error')}", 31)
+            return False
+            
+    except Exception as e:
+        print_colorized(f"Error posting to Farcaster: {e}", 31)
+        return False
 
 if __name__ == "__main__":
     main() 
