@@ -6,6 +6,8 @@ Usage:
   1. Test with remote server (default): python test_pitchyouridea.py
   2. Test with local server: python test_pitchyouridea.py --url http://localhost:8000
   3. Test with custom pitch: python test_pitchyouridea.py --pitch "Your pitch text here"
+  4. Post to Farcaster: python test_pitchyouridea.py --post
+  5. Reply to a cast: python test_pitchyouridea.py --post --reply-to CAST_ID
 """
 
 import sys
@@ -82,202 +84,89 @@ def main():
         print_colorized(f"Error loading agent: {e}", 31)
         return
     
-    # List available connections
-    print_section("AVAILABLE CONNECTIONS")
-    try:
-        connections = client.list_connections()
-        print("Connections:")
-        for name, info in connections.items():
-            status = "✅ Configured" if info.get("configured", False) else "❌ Not configured"
-            llm = "🧠 LLM Provider" if info.get("is_llm_provider", False) else ""
-            print(f"  - {name}: {status} {llm}")
-        
-        # Find an available LLM provider
-        llm_providers = [name for name, info in connections.items() 
-                        if info.get("is_llm_provider", False) and info.get("configured", False)]
-        
-        if not llm_providers:
-            print_colorized("\nNo configured LLM providers found.", 31)
-            print("Please configure one of the following:")
-            for name, info in connections.items():
-                if info.get("is_llm_provider", False) and not info.get("configured", False):
-                    print(f"  - {name}")
-            return
-        
-        print_colorized(f"\nUsing LLM provider: {llm_providers[0]}", 32)
-        llm_provider = llm_providers[0]
-        
-    except Exception as e:
-        print_colorized(f"Error listing connections: {e}", 31)
-        return
+    # Example pitch
+    default_pitch = "I'm developing a decentralized marketplace for carbon credits using blockchain technology. Our platform will connect carbon offset projects directly with businesses looking to reduce their carbon footprint. We're seeking $500K to build our MVP and onboard initial partners."
     
-    # Test pitch evaluation
+    # Use provided pitch or default
+    pitch = args.pitch if args.pitch else default_pitch
+    
     print_section("PITCH EVALUATION")
-    
-    # Example pitch or use custom pitch from args
-    if args.pitch:
-        pitch = args.pitch
-    else:
-        pitch = "I'm developing a decentralized marketplace for carbon credits using blockchain technology. Our platform will connect carbon offset projects directly with businesses looking to reduce their carbon footprint. We're seeking $500K to build our MVP and onboard initial partners."
-    
     print(f"Pitch: {pitch}")
     print("\nEvaluating pitch...")
     
     try:
-        # Create evaluation prompt
-        evaluation_prompt = f"""
-Analyze this investment pitch based on the following criteria:
-1. Societal Value: How beneficial is this to society? (Low/Medium/High)
-2. Practicality: How feasible is implementation? (Low/Medium/High)
-3. Profitability: What's the profit potential? (Low/Medium/High)
-4. Equity Potential: What percentage of equity would be appropriate for investment?
-
-PITCH TO EVALUATE:
-{pitch}
-
-Then make an investment decision:
-- If you decide to invest: Specify valuation, investment amount, and equity percentage
-- If you decline: Explain your reasoning briefly
-
-FORMAT YOUR RESPONSE AS JSON:
-{{
-  "analysis": {{
-    "societal_value": "High/Medium/Low",
-    "practicality": "High/Medium/Low",
-    "profitability": "High/Medium/Low",
-    "equity_notes": "Brief notes on equity structure"
-  }},
-  "decision": "invest/pass",
-  "valuation": 0,
-  "investment_amount": 0,
-  "equity_percentage": 0,
-  "terms": "Additional terms or conditions",
-  "explanation": "Brief explanation of decision"
-}}
-"""
-        
-        system_prompt = "You are PitchYourIdea, a professional fund manager evaluating investment pitches."
-        
-        # Execute the evaluation - Using a list for params
-        result = client.perform_action(
-            connection=llm_provider,
-            action="generate-text",
-            params=[evaluation_prompt, system_prompt]
+        # Use the agent's evaluate_pitch action
+        evaluation_result = client.perform_action(
+            agent="pitchyouridea",
+            action="evaluate_pitch",
+            params={"pitch_text": pitch}
         )
         
-        evaluation_text = result.get("result", "")
+        if not evaluation_result.get("success", False):
+            print_colorized(f"Error evaluating pitch: {evaluation_result.get('error', 'Unknown error')}", 31)
+            return
+            
+        evaluation = evaluation_result["evaluation"]
         
-        # Try to parse as JSON
-        try:
-            evaluation = json.loads(evaluation_text)
-            print("\nEvaluation result:")
-            print(json.dumps(evaluation, indent=2))
+        # Print the evaluation
+        print("\nEvaluation:")
+        print(json.dumps(evaluation, indent=2))
+        
+        # Highlight the decision
+        decision = evaluation.get("decision", "unknown").upper()
+        decision_color = 32 if decision == "INVEST" else 31  # Green for invest, red for pass
+        print_colorized(f"\nDECISION: {decision}", decision_color)
+        
+        # Generate response
+        print_section("RESPONSE GENERATION")
+        
+        response_result = client.perform_action(
+            agent="pitchyouridea",
+            action="generate_response",
+            params={
+                "pitch_text": pitch,
+                "evaluation": evaluation
+            }
+        )
+        
+        if not response_result.get("success", False):
+            print_colorized(f"Error generating response: {response_result.get('error', 'Unknown error')}", 31)
+            return
             
-            # Color-coded decision
-            decision = evaluation.get("decision", "unknown")
-            decision_color = 32 if decision == "invest" else 31  # Green for invest, red for pass
-            print_colorized(f"\nDECISION: {decision.upper()}", decision_color)
+        response_text = response_result["response"]
+        
+        print_colorized("\nResponse (for Farcaster):", 36)
+        print(f"@pitchyouridea: {response_text}")
+        
+        # Character count
+        char_count = response_result.get("character_count", len(response_text))
+        color = 32 if char_count <= 300 else 31
+        print_colorized(f"\nCharacter count: {char_count}/300", color)
+        
+        # After generating the response, check if we should post to Farcaster
+        if args.post:
+            print_section("POSTING TO FARCASTER")
             
-            # Generate response
-            print_section("RESPONSE GENERATION")
-            
-            response_prompt = f"""
-Create a concise, professional response (max 300 characters) to this investment pitch:
-
-ORIGINAL PITCH:
-{pitch}
-
-YOUR EVALUATION:
-{json.dumps(evaluation, indent=2)}
-
-Your response should:
-1. Acknowledge the pitch
-2. Provide your investment decision
-3. If investing, state the valuation, amount, and equity percentage
-4. If passing, give a brief reason why
-
-The response should be conversational and direct, without hashtags or emojis.
-"""
-            
-            system_prompt = "You are PitchYourIdea, a professional fund manager responding to investment pitches."
-            
-            # Using a list for params
-            response_result = client.perform_action(
-                connection=llm_provider,
-                action="generate-text",
-                params=[response_prompt, system_prompt]
+            post_result = client.perform_action(
+                agent="pitchyouridea",
+                action="post_to_farcaster",
+                params={
+                    "response_text": response_text,
+                    "reply_to_cast_id": args.reply_to
+                }
             )
             
-            response_text = response_result.get("result", "")
-            
-            # Trim if necessary
-            if len(response_text) > 300:
-                response_text = response_text[:297] + "..."
-            
-            print_colorized("\nResponse (for Farcaster):", 36)
-            print(f"@pitchyouridea: {response_text}")
-            
-            # Character count
-            char_count = len(response_text)
-            color = 32 if char_count <= 300 else 31
-            print_colorized(f"\nCharacter count: {char_count}/300", color)
-            
-            # After generating the response, check if we should post to Farcaster
-            if args.post:
-                post_to_farcaster(client, response_text, args.reply_to)
-            
-        except json.JSONDecodeError:
-            print_colorized("\nCould not parse evaluation as JSON. Raw result:", 31)
-            print(evaluation_text)
+            if post_result.get("success", False):
+                print_colorized("Successfully posted to Farcaster!", 32)
+                cast_hash = post_result.get("cast_hash", "unknown")
+                print(f"Cast hash: {cast_hash}")
+            else:
+                print_colorized(f"Failed to post to Farcaster: {post_result.get('error', 'Unknown error')}", 31)
         
     except Exception as e:
-        print_colorized(f"Error evaluating pitch: {e}", 31)
+        print_colorized(f"Error: {e}", 31)
     
     print_colorized("\nTest completed!", 32)
-
-def post_to_farcaster(client, response_text, reply_to_cast_id=None):
-    """Post a response to Farcaster, optionally as a reply to a specific cast"""
-    print_section("POSTING TO FARCASTER")
-    
-    try:
-        # Check if Farcaster connection is available and configured
-        connections = client.list_connections()
-        if "farcaster" not in connections:
-            print_colorized("Farcaster connection not available", 31)
-            return False
-            
-        if not connections["farcaster"].get("configured", False):
-            print_colorized("Farcaster connection not configured", 31)
-            return False
-        
-        # Prepare action parameters
-        params = [response_text]
-        if reply_to_cast_id:
-            action = "reply-to-cast"
-            params.append(reply_to_cast_id)
-        else:
-            action = "post-cast"
-        
-        # Execute the action
-        print_colorized(f"Posting to Farcaster using '{action}'...", 36)
-        result = client.perform_action(
-            connection="farcaster",
-            action=action,
-            params=params
-        )
-        
-        if result.get("success", False):
-            print_colorized("Successfully posted to Farcaster!", 32)
-            cast_hash = result.get("cast_hash", "unknown")
-            print(f"Cast hash: {cast_hash}")
-            return cast_hash
-        else:
-            print_colorized(f"Failed to post to Farcaster: {result.get('error', 'Unknown error')}", 31)
-            return False
-            
-    except Exception as e:
-        print_colorized(f"Error posting to Farcaster: {e}", 31)
-        return False
 
 if __name__ == "__main__":
     main() 

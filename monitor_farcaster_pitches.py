@@ -11,8 +11,7 @@ import json
 import time
 import logging
 import argparse
-import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from src.server.client import ZerePyClient
 
 # Configure logging
@@ -212,8 +211,8 @@ def get_mentions(client):
     try:
         result = client.perform_action(
             connection="farcaster",
-            action="get-mentions",
-            params=[]
+            action="mentioned_casts",
+            params=["25"]
         )
         
         if "mentions" in result:
@@ -374,14 +373,27 @@ def main():
         while True:
             logger.info("Checking for new casts...")
             
-            # Process new casts
-            new_processed = process_new_casts(client, processed_casts, llm_provider)
+            # Process new casts using the agent
+            timestamp = datetime.now().isoformat()
+            result = client.perform_action(
+                agent="pitchyouridea",
+                action="process_new_casts",
+                params={
+                    "processed_casts": processed_casts,
+                    "timestamp": timestamp
+                }
+            )
             
-            # Update processed casts
-            processed_casts.update(new_processed)
-            
-            # Log stats
-            logger.info(f"Processed {len(new_processed)} new casts, {len(processed_casts)} total")
+            if result.get("success", False):
+                # Update processed casts
+                new_processed = result.get("new_processed", {})
+                processed_casts.update(new_processed)
+                
+                # Log stats
+                processed_count = result.get("processed_count", 0)
+                logger.info(f"Processed {processed_count} new casts, {len(processed_casts)} total")
+            else:
+                logger.error(f"Error processing casts: {result.get('error', 'Unknown error')}")
             
             # Sleep for the specified interval
             logger.info(f"Sleeping for {args.interval} seconds...")

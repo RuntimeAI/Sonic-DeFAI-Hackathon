@@ -106,6 +106,13 @@ class FarcasterConnection(BaseConnection):
                     ActionParameter("thread_hash", True, str, "Hash of the thread to query for replies")
                 ],
                 description="Fetch cast replies (thread)"
+            ),
+            "mentioned-casts": Action(
+                name="mentioned-casts",
+                parameters=[
+                    ActionParameter("limit", False, int, "Maximum number of mentioned casts to retrieve (default: 25)")
+                ],
+                description="Get casts that mention the current Farcaster account"
             )
         }
     
@@ -253,19 +260,59 @@ class FarcasterConnection(BaseConnection):
         logger.debug(f"Fetching replies for thread: {thread_hash}")
         return self._client.get_all_casts_in_thread(thread_hash)
     
-    # "reply-to-cast": Action(
-    #     name="reply-to-cast",
-    #     parameters=[
-    #         ActionParameter("parent_fid", True, int, "Farcaster ID of the parent cast to reply to"),
-    #         ActionParameter("parent_hash", True, str, "Hash of the parent cast to reply to"),
-    #         ActionParameter("text", True, str, "Text content of the cast"),
-    #     ],
-    #     description="Reply to an existing cast"
-    # ),
-    # "get-cast-replies": Action(
-    #     name="get-cast-replies", # get_all_casts_in_thread
-    #     parameters=[
-    #         ActionParameter("thread_hash", True, str, "Hash of the thread to query for replies")
-    #     ],
-    #     description="Fetch cast replies (thread)"
-    # )
+    def mentioned_casts(self, limit=25):
+        """
+        Get casts that mention the current Farcaster account.
+        
+        Args:
+            limit (int): Maximum number of mentioned casts to retrieve (default: 25)
+            
+        Returns:
+            dict: A dictionary containing the mentioned casts
+        """
+        try:
+            # Get the current account's FID
+            account_info = self.get_account_info()
+            if not account_info or "account" not in account_info:
+                return {"error": "Failed to get account info"}
+            
+            fid = account_info["account"].get("fid")
+            if not fid:
+                return {"error": "Failed to get account FID"}
+            
+            # Create a request to get mentions
+            request = {"fid": fid, "page_size": limit}
+            
+            # Call the Hubble API to get mentions
+            # Based on the GetCastsByMention endpoint from the Farcaster API docs
+            # https://docs.farcaster.xyz/reference/hubble/grpcapi/casts
+            response = self._client.get_casts_by_mention(request)
+            
+            # Process the response
+            mentions = []
+            for message in response.messages:
+                cast_add = message.data.cast_add
+                author = self._get_profile_by_fid(cast_add.fid)
+                
+                # Format the cast data
+                cast = {
+                    "hash": message.hash.hex(),
+                    "thread_hash": cast_add.parent_hash.hex() if cast_add.parent_hash else None,
+                    "parent_hash": cast_add.parent_hash.hex() if cast_add.parent_hash else None,
+                    "author": author,
+                    "text": cast_add.text,
+                    "timestamp": message.timestamp,
+                    "reactions": {
+                        "likes": 0,
+                        "recasts": 0,
+                        "replies": 0
+                    },
+                    "embeds": [embed.url for embed in cast_add.embeds]
+                }
+                mentions.append(cast)
+            
+            return {"mentions": mentions}
+        
+        except Exception as e:
+            logger.error(f"Error getting mentioned casts: {e}")
+            return {"error": f"Failed to get mentioned casts: {str(e)}"}
