@@ -1170,7 +1170,7 @@ requests = ">=2.28.1,<3.0.0"
 name = "fastapi"
 version = "0.115.11"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "fastapi-0.115.11-py3-none-any.whl", hash = "sha256:32e1541b7b74602e4ef4a0260ecaf3aadf9d4f19590bba3e1bf2ac4666aa2c64"},
@@ -2989,7 +2989,7 @@ typing-extensions = ">=4.2.0"
 name = "starlette"
 version = "0.46.0"
 description = "The little ASGI library that shines."
-optional = false
+optional = true
 python-versions = ">=3.9"
 files = [
     {file = "starlette-0.46.0-py3-none-any.whl", hash = "sha256:913f0798bd90ba90a9156383bcf1350a17d6259451d0d8ee27fc0cf2db609038"},
@@ -3176,7 +3176,7 @@ zstd = ["zstandard (>=0.18.0)"]
 name = "uvicorn"
 version = "0.34.0"
 description = "The lightning-fast ASGI server."
-optional = false
+optional = true
 python-versions = ">=3.9"
 files = [
     {file = "uvicorn-0.34.0-py3-none-any.whl", hash = "sha256:023dc038422502fa28a09c7a30bf2b6991512da7dcdb8fd35fe57cfc154126f4"},
@@ -3431,9 +3431,9 @@ multidict = ">=4.0"
 propcache = ">=0.2.0"
 
 [extras]
-server = ["fastapi", "requests", "uvicorn"]
+server = ["fastapi", "uvicorn"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "7ba2df4f5697e530c9a1bc2322bdfdc967a816fba3fa2e9eb4cf4442b56453b7"
+content-hash = "ff7a0aecac218cd1885c4a969f0e98dd3e7c3e1226bd89a84e855daeda313c82"
