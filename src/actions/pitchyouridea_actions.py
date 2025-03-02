@@ -118,7 +118,16 @@ FORMAT YOUR RESPONSE AS JSON:
 
     # Get evaluation from LLM
     try:
-        evaluation_result = agent.prompt_llm(evaluation_prompt)
+        # Use the connection_manager to get the appropriate LLM provider
+        llm_providers = agent.connection_manager.get_model_providers()
+        if not llm_providers:
+            agent.logger.error("No configured LLM providers available")
+            return False
+            
+        # Prefer Anthropic if available, otherwise use OpenAI
+        provider = "anthropic" if "anthropic" in llm_providers else llm_providers[0]
+        
+        evaluation_result = agent.prompt_llm(evaluation_prompt, provider=provider)
         agent.logger.info("Evaluation completed")
         
         # Store evaluation result
@@ -170,8 +179,17 @@ The response should be conversational and direct, without hashtags or emojis.
 """
 
     try:
+        # Use the connection_manager to get the appropriate LLM provider
+        llm_providers = agent.connection_manager.get_model_providers()
+        if not llm_providers:
+            agent.logger.error("No configured LLM providers available")
+            return False
+            
+        # Prefer OpenAI for responses as they tend to be more concise
+        provider = "openai" if "openai" in llm_providers else llm_providers[0]
+        
         # Generate response text
-        response_text = agent.prompt_llm(response_prompt)
+        response_text = agent.prompt_llm(response_prompt, provider=provider)
         
         # Trim if necessary
         if len(response_text) > 300:
