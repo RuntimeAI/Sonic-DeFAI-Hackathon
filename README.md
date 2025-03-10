@@ -1,7 +1,7 @@
 # Persuade Me - AI Debate Game on Farcaster
 
 <div align="center">
-  <img src="https://i.imgur.com/placeholder.png" alt="Persuade Me Logo" width="300"/>
+  <img width="554" alt="2970" src="https://github.com/user-attachments/assets/4cd8fa58-bd14-42f5-8ddd-dedff7d93c05" />
   <br>
   <em>Challenge. Debate. Earn.</em>
 </div>
