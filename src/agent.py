@@ -11,6 +11,7 @@ from src.action_handler import execute_action
 import src.actions.twitter_actions  
 import src.actions.echochamber_actions
 import src.actions.solana_actions
+import src.actions.persuade_actions
 from datetime import datetime
 
 REQUIRED_FIELDS = ["name", "bio", "traits", "examples", "loop_delay", "config", "tasks"]
@@ -18,6 +19,9 @@ REQUIRED_FIELDS = ["name", "bio", "traits", "examples", "loop_delay", "config", 
 logger = logging.getLogger("agent")
 
 class ZerePyAgent:
+    # Class variable to track all agent instances
+    instances = []
+    
     def __init__(
             self,
             agent_name: str
@@ -36,9 +40,13 @@ class ZerePyAgent:
             self.examples = agent_dict["examples"]
             self.example_accounts = agent_dict["example_accounts"]
             self.loop_delay = agent_dict["loop_delay"]
+            self.config = agent_dict  # Store the full config
             self.connection_manager = ConnectionManager(agent_dict["config"])
             self.use_time_based_weights = agent_dict["use_time_based_weights"]
             self.time_based_multipliers = agent_dict["time_based_multipliers"]
+            
+            # Initialize state for storing runtime data
+            self.state = {}
 
             has_twitter_tasks = any("tweet" in task["name"] for task in agent_dict.get("tasks", []))
             
@@ -47,7 +55,7 @@ class ZerePyAgent:
             if has_twitter_tasks and twitter_config:
                 self.tweet_interval = twitter_config.get("tweet_interval", 900)
                 self.own_tweet_replies_count = twitter_config.get("own_tweet_replies_count", 2)
-
+            
             # Extract Echochambers config
             echochambers_config = next((config for config in agent_dict["config"] if config["name"] == "echochambers"), None)
             if echochambers_config:
@@ -55,17 +63,18 @@ class ZerePyAgent:
                 self.echochambers_history_count = echochambers_config.get("history_read_count", 50)
 
             self.is_llm_set = False
+                
+            # Add this instance to the class instances list
+            ZerePyAgent.instances.append(self)
 
             # Cache for system prompt
-            self._system_prompt = None
-
-            # Extract loop tasks
-            self.tasks = agent_dict.get("tasks", [])
-            self.task_weights = [task.get("weight", 0) for task in self.tasks]
+            self._system_prompt_cache = None
+            
+            # Set up tasks and weights
+            self.tasks = agent_dict["tasks"]
+            self.task_weights = [task.get("weight", 1) for task in self.tasks]
+            
             self.logger = logging.getLogger("agent")
-
-            # Set up empty agent state
-            self.state = {}
 
         except Exception as e:
             logger.error("Could not load ZerePy agent")
@@ -87,7 +96,7 @@ class ZerePyAgent:
 
     def _construct_system_prompt(self) -> str:
         """Construct the system prompt from agent configuration"""
-        if self._system_prompt is None:
+        if self._system_prompt_cache is None:
             prompt_parts = []
             prompt_parts.extend(self.bio)
 
@@ -110,9 +119,9 @@ class ZerePyAgent:
                         if tweets:
                             prompt_parts.extend(f"- {tweet['text']}" for tweet in tweets)
 
-            self._system_prompt = "\n".join(prompt_parts)
+            self._system_prompt_cache = "\n".join(prompt_parts)
 
-        return self._system_prompt
+        return self._system_prompt_cache
     
     def _adjust_weights_for_time(self, current_hour: int, task_weights: list) -> list:
         weights = task_weights.copy()
