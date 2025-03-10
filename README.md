@@ -10,7 +10,7 @@
 
 **Persuade Me** is an engaging AI-powered debate game built on Farcaster using Sonic blockchain for rewards. The game leverages ZerePy's AI architecture to create an interactive and educational experience around Web3 topics.
 
-The concept is simple: the @typox-ai account posts Web3-related challenges, and players respond with their most persuasive arguments. If you successfully convince the AI, you'll be rewarded with $S tokens directly on Sonic.
+The concept is simple: the [@typox-ai](https://warpcast.com/typox-ai/) account posts Web3-related challenges, and players respond with their most persuasive arguments. If you successfully convince the AI, you'll be rewarded with $S tokens directly on Sonic.
 
 This project combines education, social engagement, and blockchain rewards in a seamless experience that makes learning about Web3 concepts fun and rewarding.
 
@@ -79,9 +79,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgements
 
-- [ZerePy](https://github.com/blorm/zerepy) - The AI agent framework powering this project
+- [ZerePy](https://github.com/blorm-network/ZerePy) - The AI agent framework powering this project
 - [Farcaster](https://www.farcaster.xyz/) - The decentralized social network platform
-- [Sonic]([https://www.soniclabs.com/]) - The Fastest EVM Layer-1 Blockchain
+- [Sonic](https://www.soniclabs.com/) - The Fastest EVM Layer-1 Blockchain
 - [Neynar](https://neynar.com/) - For their reliable Farcaster API
 
 ---
