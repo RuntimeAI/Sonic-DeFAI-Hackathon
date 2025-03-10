@@ -16,5 +16,3 @@ def execute_action(agent, action_name, **kwargs):
     else:
         logger.error(f"Action {action_name} not found")
         return None
-    
-
