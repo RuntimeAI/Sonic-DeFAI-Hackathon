@@ -51,15 +51,23 @@ This project combines education, social engagement, and blockchain rewards in a 
 git clone https://github.com/yourusername/persuade-me.git
 cd persuade-me
 
-# Install dependencies
-pip install -r requirements.txt
-
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your API keys and configuration
 
 # Run the agent
-python main.py
+poetry run python3 main.py
+
+#Load agent
+load-agent persuade_me_agent
+#Post a challenge
+agent-action farcaster post-persuade-challenge
+#Check the replies
+agent-action farcaster check-challenge-replies
+#Send reward
+agent-action sonic reward-successful-persuasion
+
+
 ```
 
 ## 🔑 Environment Variables
@@ -69,6 +77,7 @@ Create a `.env` file with the following variables:
 ```
 NEYNAR_API_KEY=your_neynar_api_key
 FARCASTER_FID=your_farcaster_id
+FARCASTER_MNEMONIC=your_farcaster_mnmonic
 OPENAI_API_KEY=your_openai_api_key
 SONIC_PRIVATE_KEY=your_sonic_private_key
 ```
@@ -87,6 +96,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <p>Built with ❤️ for the Web3 community</p>
-  <p>Created during an international hackathon</p>
+  <p>Built with ❤️ for the Sonic Eco</p>
+  <p>Created during an Sonic-DeFAI hackathon</p>
 </div>
