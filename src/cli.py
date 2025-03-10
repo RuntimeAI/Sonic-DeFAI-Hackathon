@@ -32,7 +32,26 @@ class Command:
             self.aliases = []
 
 class ZerePyCLI:
+    # Class variable to store the current instance
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ZerePyCLI, cls).__new__(cls)
+            cls._instance.agent = None
+            
+            # Create config directory if it doesn't exist
+            cls._instance.config_dir = Path.home() / '.zerepy'
+            cls._instance.config_dir.mkdir(exist_ok=True)
+            
+            # Initialize other attributes in __init__
+        return cls._instance
+    
     def __init__(self):
+        # Skip initialization if already initialized
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+            
         self.agent = None
         
         # Create config directory if it doesn't exist
@@ -44,6 +63,8 @@ class ZerePyCLI:
         
         # Setup prompt toolkit components
         self._setup_prompt_toolkit()
+        
+        self._initialized = True
 
     def _initialize_commands(self) -> None:
         """Initialize all CLI commands"""
