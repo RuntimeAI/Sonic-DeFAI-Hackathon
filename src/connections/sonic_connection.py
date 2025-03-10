@@ -141,6 +141,13 @@ class SonicConnection(BaseConnection):
                     ActionParameter("slippage", False, float, "Max slippage percentage")
                 ],
                 description="Swap tokens"
+            ),
+            "reward-successful-persuasion": Action(
+                name="reward-successful-persuasion",
+                parameters=[
+                    ActionParameter("username", False, str, "The username to reward")
+                ],
+                description="Send Sonic tokens to a user who successfully persuaded the agent"
             )
         }
 
@@ -438,6 +445,26 @@ class SonicConnection(BaseConnection):
         except Exception as e:
             logger.error(f"Swap failed: {e}")
             raise
+
+    def reward_successful_persuasion(self, username: str = None) -> str:
+        """Send Sonic tokens to a user who successfully persuaded the agent.
+        
+        This function is implemented in src/actions/persuade_actions.py
+        and will be called through the action_handler.
+        """
+        from src.action_handler import execute_action
+        import src.actions.persuade_actions  # Ensure actions are registered
+        
+        # Use the current agent from CLI
+        from src.cli import ZerePyCLI
+        agent = ZerePyCLI().agent
+        
+        if not agent:
+            raise ValueError("No agent currently loaded")
+        
+        # Execute the action through the action handler
+        return execute_action(agent, "reward-successful-persuasion", username=username)
+
     def perform_action(self, action_name: str, kwargs) -> Any:
         """Execute a Sonic action with validation"""
         if action_name not in self.actions:
