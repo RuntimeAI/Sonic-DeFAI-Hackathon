@@ -1,4 +1,4 @@
-# Persuade Me - AI Debate Game on Farcaster
+# Persuade Me! - AI Farcaster Debate Game based on Soinic
 
 <div align="center">
   <img width="554" alt="2970" src="https://github.com/user-attachments/assets/4cd8fa58-bd14-42f5-8ddd-dedff7d93c05" />
@@ -81,7 +81,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [ZerePy](https://github.com/blorm/zerepy) - The AI agent framework powering this project
 - [Farcaster](https://www.farcaster.xyz/) - The decentralized social network platform
-- [Sonic](https://sonic.org/) - The high-speed blockchain for rewards
+- [Sonic]([https://www.soniclabs.com/]) - The Fastest EVM Layer-1 Blockchain
 - [Neynar](https://neynar.com/) - For their reliable Farcaster API
 
 ---
